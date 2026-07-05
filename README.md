@@ -2,6 +2,8 @@
 
 This is the main repository for the Silicate bot. 
 
+###  Added Macro Merging, adding features what yall needs. Ask in issue or write me in Discord - `8e5w`
+
 ## Versioning
 
 Currently the bot is in **alpha**, which means we use `1.0.0-alpha.XX` builds.
@@ -32,7 +34,7 @@ lib/
 
 ## Compiling
 
-1. Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
+1. [DON'T NEEDED, REPO CONTAINS IT ALSO] Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
 2. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
 
 ## Contributing
