@@ -2,7 +2,7 @@
 
 This is the main repository for the Silicate bot. 
 
-###  Added Macro Merging, adding features what yall needs. Ask in issue or write me in Discord - `8e5w`
+###  Added Macro Merging, adding features what yall needs. Ask in "Issues" tab or write me in Discord - `8e5w`
 
 ## Versioning
 
