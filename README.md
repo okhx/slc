@@ -35,9 +35,16 @@ lib/
 ## Compiling
 
 1. [DON'T NEEDED, REPO CONTAINS IT ALSO] Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
-2. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
+2. You need a `ninja-build`, `cmake`, `GeodeSDK` installed. It's a requirements to compile it.
+3. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
 
 ## Contributing
 
 Please use feature branches. Use clang-format for formatting your code (unless it makes it horribly unreadable).
 Currently we do not have automated testing. Please test the features you're implementing/changing and related components before releasing builds.
+
+## Future:
+1. Clear the code.
+2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
+3. Some Improvements.
+4. Video Rendering improvements.
