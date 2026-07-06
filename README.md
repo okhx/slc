@@ -1,6 +1,8 @@
 # Silicate
 
-This is the main repository for the Silicate bot. 
+This is the not official repository for the Silicate bot. It's a fork of main repository with some added functions.
+
+Sources will be uploaded if release version will working fine for a some time
 
 ###  Added Macro Merging, adding features what yall needs. Ask in "Issues" tab or write me in Discord - `8e5w`
 
