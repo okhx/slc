@@ -48,5 +48,5 @@ Currently we do not have automated testing. Please test the features you're impl
 ## Features:
 - [x] 1. **Clean code.**
 - [x] 2. **Optimized functions.**
-- [x] 3. **Needed fucntions.**
+- [x] 3. **New Necessary functions.**
 - [ ] 3. Video Rendering improvements.
