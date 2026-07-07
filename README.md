@@ -1,6 +1,6 @@
 # Silicate
 
-### **This is the not official repository for the Silicate bot.** It's a fork of main repository with some added functions.
+### This is the not official repository for the Silicate bot. It's a fork of main repository with some added functions.
 
 Sources will be uploaded if release version will working fine for a some time
 
@@ -36,7 +36,7 @@ lib/
 
 ## Compiling
 
-1. [DON'T NEEDED, REPO CONTAINS IT ALSO] Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
+1. **[DON'T NEEDED, REPO CONTAINS IT ALSO]** Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
 2. You need a `ninja-build`, `cmake`, `GeodeSDK` installed. It's a requirements to compile it.
 3. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
 
@@ -45,7 +45,8 @@ lib/
 Please use feature branches. Use clang-format for formatting your code (unless it makes it horribly unreadable).
 Currently we do not have automated testing. Please test the features you're implementing/changing and related components before releasing builds.
 
-## Future:
-- [x] 1. ~~Clear the code.~~
-- [x] 2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
+## Features:
+- [x] 1. **Clean code.**
+- [x] 2. **Optimized functions.**
+- [x] 3. **Needed fucntions.**
 - [ ] 3. Video Rendering improvements.
