@@ -1,6 +1,6 @@
 # Silicate
 
-This is the not official repository for the Silicate bot. It's a fork of main repository with some added functions.
+### **This is the not official repository for the Silicate bot.** It's a fork of main repository with some added functions.
 
 Sources will be uploaded if release version will working fine for a some time
 
@@ -47,5 +47,5 @@ Currently we do not have automated testing. Please test the features you're impl
 
 ## Future:
 - [x] 1. ~~Clear the code.~~
-- [ ] 2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
+- [x] 2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
 - [ ] 3. Video Rendering improvements.
