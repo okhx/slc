@@ -46,6 +46,6 @@ Please use feature branches. Use clang-format for formatting your code (unless i
 Currently we do not have automated testing. Please test the features you're implementing/changing and related components before releasing builds.
 
 ## Future:
-1. ~~ Clear the code. ~~
-2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
-3. Video Rendering improvements.
+[x] 1. Clear the code.
+[ ] 2. Optimize all stuff like hitbox rendering, trajectory rendering etc.
+[ ] 3. Video Rendering improvements.
