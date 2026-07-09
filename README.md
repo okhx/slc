@@ -46,7 +46,9 @@ Please use feature branches. Use clang-format for formatting your code (unless i
 Currently we do not have automated testing. Please test the features you're implementing/changing and related components before releasing builds.
 
 ## Features:
-- [x] 1. **Clean code.**
-- [x] 2. **Optimized functions.**
-- [x] 3. **New Necessary functions.**
-- [ ] 3. Video Rendering improvements.
+- [x] **Clean code.**
+- [x] **Optimized functions.**
+- [x] **New Necessary functions.**
+- [x] **Video Rendering improvements.**
+- [x] **Comfortable Bindings. (next upd)**
+- [x] **Custom Fonts. (next upd)**
