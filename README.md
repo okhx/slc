@@ -50,5 +50,5 @@ Currently we do not have automated testing. Please test the features you're impl
 - [x] **Optimized functions.**
 - [x] **New Necessary functions.**
 - [x] **Video Rendering improvements.**
-- [x] **Comfortable Bindings. (next upd)**
-- [x] **Custom Fonts. (next upd)**
+- [x] **Easy Bindings.**
+- [x] **Custom Fonts.**
