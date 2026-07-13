@@ -1,4 +1,4 @@
-#include "manager.hpp"
+ #include "manager.hpp"
 
 #include <winuser.h>
 
@@ -23,7 +23,7 @@
 #include "settings/settings.hpp"
 #include "shared/keys.hpp"
 #include "trajectory/trajectory.hpp"
-// #include "widgets/hotkey.hpp"
+
 #include "imgui.h"
 #include "util/config.hpp"
 #include "widgets/checkbox.hpp"
@@ -280,7 +280,6 @@ static float getWindowDpi() {
     return scaling;
 }
 
-// EPIC code
 static std::string ffmpegUrl = "https://cdn.silicate.dev/ffmpeg.zip";
 
 void UIManager::setup() {
@@ -295,8 +294,8 @@ void UIManager::setup() {
     m_state.m_playAnimations->handle(
         [](bool& play) { tabby::TabbyGlobalCfg::get().playAnimations = play; });
 
-    g_dpiGetter = (DpiGetterType)GetProcAddress(GetModuleHandleA("user32.dll"),
-                                                "GetDpiForWindow");
+    g_dpiGetter = reinterpret_cast<DpiGetterType>(
+        GetProcAddress(GetModuleHandleA("user32.dll"), "GetDpiForWindow"));
 
     m_state.m_uiScale->handle([this](float& scale) {
         tabby::TabbyGlobalCfg::get().uiScale = scale * getWindowDpi();
@@ -325,7 +324,7 @@ void UIManager::setup() {
     ImFontConfig mediumFontCfg;
     mediumFontCfg.OversampleH = 3;
     mediumFontCfg.OversampleV = 3;
-    // mediumFontCfg.FontDataOwnedByAtlas = true;
+    
     mediumFontCfg.GlyphExtraAdvanceX = -1.0f * 20.0f * 0.02f;
 
     ImFont* mediumFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(
@@ -346,7 +345,7 @@ void UIManager::setup() {
     ImFontConfig mainFontCfg;
     mainFontCfg.OversampleH = 3;
     mainFontCfg.OversampleV = 3;
-    // mainFontCfg.FontDataOwnedByAtlas = true;
+    
     mainFontCfg.GlyphExtraAdvanceX = -1.0f * 17.0f * 0.03f;
 
     ImFont* mainFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(
@@ -364,13 +363,43 @@ void UIManager::setup() {
 
     ImGui::GetIO().Fonts->Build();
 
-    m_font = tabby::Font(mainFont);
+    m_font   = tabby::Font(mainFont);
     m_medium = tabby::Font(mediumFont);
 
     m_bold =
         tabby::Font::load(geode::utils::string::pathToString(
                               Mod::get()->getResourcesDir() / "font_bold.ttf"),
                           32.0f);
+
+    {
+        namespace fs = std::filesystem;
+        auto fontsDir = Mod::get()->getPersistentDir(true) / "fonts";
+        fs::create_directories(fontsDir);
+
+        m_state.m_customFontNames.clear();
+        m_state.m_customFonts.clear();
+
+        auto* io = &ImGui::GetIO();
+        for (const auto& entry : fs::directory_iterator(fontsDir)) {
+            auto ext = entry.path().extension().string();
+            if (ext != ".ttf" && ext != ".otf") continue;
+
+            std::string name = entry.path().stem().string();
+            std::string path = entry.path().string();
+
+            ImFont* font = io->Fonts->AddFontFromFileTTF(path.c_str(), 20.0f);
+            if (font) {
+                m_state.m_customFontNames.push_back(name);
+                m_state.m_customFonts.push_back(font);
+            }
+        }
+
+        if (!m_state.m_customFontNames.empty()) {
+            io->Fonts->Build();
+        }
+
+        m_state.m_labelFontsState.options = {"Big", "Regular"};
+    }
 
     m_state.m_rainbow->notifyChange();
     m_state.m_playAnimations->notifyChange();
@@ -468,7 +497,6 @@ static void renderBlurBg(float rounding = 24.0f, float borderSize = 2.5f,
             ImGui::GetColorU32(ImVec4(0.1f, 0.1f, 0.1f, bgOpacity)), rounding,
             ImDrawFlags_RoundCornersAll);
 
-        // window border
         ImGui::GetWindowDrawList()->AddRect(
             ImGui::GetWindowPos(),
             ImGui::GetWindowPos() + ImGui::GetWindowSize(),
@@ -541,7 +569,6 @@ static void renderBlurBg(float rounding = 24.0f, float borderSize = 2.5f,
         ImGui::GetColorU32(ImVec4(0.1f, 0.1f, 0.1f, bgOpacity)), rounding,
         ImDrawFlags_RoundCornersAll);
 
-    // window border
     ImGui::GetWindowDrawList()->AddRect(
         ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize(),
         ImGui::GetColorU32(ImVec4(1.0, 1.0, 1.0, 0.1f)), rounding,
@@ -565,6 +592,214 @@ static std::vector<std::string> filterCandidates(
     }
 
     return filtered;
+}
+
+static std::string keyCodeName(int key) {
+    
+    if (key >= 'A' && key <= 'Z') return std::string(1, static_cast<char>(key));
+    if (key >= '0' && key <= '9') return std::string(1, static_cast<char>(key));
+    
+    if (key >= 0x70 && key <= 0x7B) return "F" + std::to_string(key - 0x70 + 1);
+    switch (key) {
+        case VK_SPACE:    return "Space";
+        case VK_RETURN:   return "Enter";
+        case VK_ESCAPE:   return "Escape";
+        case VK_TAB:      return "Tab";
+        case VK_BACK:     return "Backspace";
+        case VK_DELETE:   return "Delete";
+        case VK_INSERT:   return "Insert";
+        case VK_HOME:     return "Home";
+        case VK_END:      return "End";
+        case VK_PRIOR:    return "PageUp";
+        case VK_NEXT:     return "PageDown";
+        case VK_LEFT:     return "Left";
+        case VK_RIGHT:    return "Right";
+        case VK_UP:       return "Up";
+        case VK_DOWN:     return "Down";
+        case VK_CONTROL:  return "Ctrl";
+        case VK_SHIFT:    return "Shift";
+        case VK_MENU:     return "Alt";
+        case VK_OEM_3:    return "`";
+        case VK_OEM_MINUS:return "-";
+        case VK_OEM_PLUS: return "=";
+        case VK_OEM_4:    return "[";
+        case VK_OEM_6:    return "]";
+        case VK_OEM_5:    return "\\";
+        case VK_OEM_1:    return ";";
+        case VK_OEM_7:    return "'";
+        case VK_OEM_COMMA:return ",";
+        case VK_OEM_PERIOD:return ".";
+        case VK_OEM_2:    return "/";
+        default:          return "Key(" + std::to_string(key) + ")";
+    }
+}
+
+static std::string keybindDisplayName(const std::shared_ptr<KeybindControl>& kb) {
+    int hash = kb->getHash();
+    int key  = hash & 0xFFFFF;
+    int mods = hash >> 20;
+
+    std::string name;
+    if (mods & SLKeybind<bool>::MODIFIER_CTRL)  name += "Ctrl+";
+    if (mods & SLKeybind<bool>::MODIFIER_SHIFT) name += "Shift+";
+    if (mods & SLKeybind<bool>::MODIFIER_ALT)   name += "Alt+";
+    name += keyCodeName(key);
+    return name;
+}
+
+static std::string keybindDisplayName_fromParts(int key, int mods) {
+    std::string name;
+    if (mods & SLKeybind<bool>::MODIFIER_CTRL)  name += "Ctrl+";
+    if (mods & SLKeybind<bool>::MODIFIER_SHIFT) name += "Shift+";
+    if (mods & SLKeybind<bool>::MODIFIER_ALT)   name += "Alt+";
+    name += keyCodeName(key);
+    return name;
+}
+
+void UIManager::drawKeybindContextMenu() {
+    auto* bm  = SLBindingManager::get();
+    auto& ctx = m_state.m_keybindCtx;
+    const auto verticalSpacer = [](float height) {
+        ImGui::Dummy(ImVec2(0.0f, height * tabby::TabbyGlobalCfg::get().uiScale));
+    };
+
+    if (ctx.capturing) {
+        if (bm->hasNewKey()) {
+            ctx.capturedKey = static_cast<int>(bm->getNewKey());
+            ctx.capturing   = false;
+            ctx.open        = true;
+        } else {
+            const float scale = tabby::TabbyGlobalCfg::get().uiScale;
+            const ImVec2 winSize{500.0f * scale, 0.0f};
+            ImGui::SetNextWindowPos(
+                ImGui::GetMainViewport()->GetCenter(),
+                ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            ImGui::SetNextWindowSize(winSize, ImGuiCond_Always);
+            ImGui::SetNextWindowBgAlpha(0.0f);
+            if (ImGui::Begin("##SLKeyCapture", nullptr,
+                             ImGuiWindowFlags_NoDecoration |
+                             ImGuiWindowFlags_NoNav |
+                             ImGuiWindowFlags_NoScrollbar)) {
+                renderBlurBg(16.0f, 2.0f, m_state.m_useShader->inner());
+                const float contentWidth = ImGui::GetContentRegionAvail().x;
+                tabby::group([&]() {
+                    verticalSpacer(8.0f);
+                    tabby::text("Keybind Capture", m_bold);
+                    verticalSpacer(6.0f);
+                    tabby::text("Press any key on your keyboard...");
+                    verticalSpacer(8.0f);
+                    if (tabby::button("Close").pressed) {
+                        ctx.capturing = false;
+                        ctx.open      = true;
+                        bm->wantNewKey();
+                        bm->getNewKey();
+                    }
+                    verticalSpacer(6.0f);
+                }, contentWidth);
+            }
+            ImGui::End();
+            return;
+        }
+    }
+
+    if (!ctx.open) return;
+
+    const float scale = tabby::TabbyGlobalCfg::get().uiScale;
+    const ImVec2 winSize{500.0f * scale, 0.0f};
+    ImGui::SetNextWindowPos(
+        ImGui::GetMainViewport()->GetCenter(),
+        ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSizeConstraints(winSize, ImVec2(winSize.x, FLT_MAX));
+    ImGui::SetNextWindowBgAlpha(0.0f);
+
+    if (!ImGui::Begin("##SLKeybindWindow", &ctx.open,
+                      ImGuiWindowFlags_NoDecoration |
+                      ImGuiWindowFlags_NoNav |
+                      ImGuiWindowFlags_NoScrollbar |
+                      ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::End();
+        return;
+    }
+
+    renderBlurBg(16.0f, 2.0f, m_state.m_useShader->inner());
+
+    const float contentWidth = ImGui::GetContentRegionAvail().x;
+    tabby::group([&]() {
+        verticalSpacer(8.0f);
+        tabby::text("Keybinds", m_bold);
+        verticalSpacer(4.0f);
+        tabby::text(ctx.tag);
+        tabby::divider(false);
+
+        auto existing = bm->getKeybindsForTag(ctx.tag);
+        if (existing.empty()) {
+            tabby::text("No keybinds assigned.");
+            verticalSpacer(4.0f);
+        } else {
+            for (auto& kb : existing) {
+                std::string displayName = keybindDisplayName(kb);
+                tabby::text(displayName);
+                verticalSpacer(4.0f);
+                if (tabby::button(("Remove##" + displayName)).pressed) {
+                    bm->removeKeybind(kb);
+                    auto path = geode::Mod::get()->getConfigDir(true) / "keybinds.json";
+                    bm->writeToFile(path);
+                    break;
+                }
+                verticalSpacer(6.0f);
+            }
+            verticalSpacer(4.0f);
+        }
+
+        tabby::divider(false);
+        tabby::text("Add Keybind", m_medium);
+        verticalSpacer(6.0f);
+
+        std::string keyLabel = ctx.capturedKey == 0
+            ? "Capture key..."
+            : keybindDisplayName_fromParts(ctx.capturedKey, ctx.capturedMod);
+
+        if (tabby::button(keyLabel).pressed) {
+            ctx.capturedKey = 0;
+            ctx.capturedMod = 0;
+            ctx.capturing   = true;
+            ctx.open        = false;
+            bm->wantNewKey();
+        }
+
+        verticalSpacer(8.0f);
+        tabby::divider(false);
+        verticalSpacer(4.0f);
+
+        bool canAdd = ctx.capturedKey != 0 && bm->hasValue(ctx.tag);
+        if (canAdd) {
+            const float footerButtonWidth =
+                (contentWidth - ImGui::GetStyle().ItemSpacing.x) / 2.0f;
+            tabby::group([&]() {
+                if (tabby::button("Add Keybind").pressed) {
+                    RawKeybind raw{
+                        ctx.capturedKey, ctx.capturedMod,
+                        ctx.tag, ctx.pendingType, true, ctx.pendingValue};
+                    bm->addKeybindForTag(ctx.tag, raw);
+                    auto path = geode::Mod::get()->getConfigDir(true) / "keybinds.json";
+                    bm->writeToFile(path);
+                    ctx.capturedKey  = 0;
+                    ctx.capturedMod  = 0;
+                    ctx.pendingValue = "1";
+                }
+            }, footerButtonWidth);
+            tabby::same_line();
+            tabby::group([&]() {
+                if (tabby::button("Close").pressed) ctx.open = false;
+            }, footerButtonWidth);
+        } else {
+            if (tabby::button("Close").pressed) ctx.open = false;
+        }
+
+        verticalSpacer(8.0f);
+    }, contentWidth);
+
+    ImGui::End();
 }
 
 void UIManager::draw() {
@@ -599,8 +834,7 @@ void UIManager::draw() {
     CCEGLView::get()->showCursor(true);
 
     tabby::ScopedFont s(m_font);
-    // clip all that start with m_state.m_replayName (case insensitive) (std)
-
+    
     tabby::window("Silicate", [this, bot, popupShaderFn]() {
         if (m_state.m_useShader->inner()) {
             renderBlurBg(24.0f, 2.5f, true, m_state.m_opacity->inner(), true);
@@ -719,6 +953,21 @@ void UIManager::draw() {
                     }
                 }
 
+                if (tabby::button("Use Level Name").pressed) {
+                    auto pl = PlayLayer::get();
+                    if (pl) {
+                        auto* settings = SLSettings::get();
+                        namespace str = geode::utils::string;
+                        int randomNumber = geode::utils::random::generate(0, 999'999'999);
+                        std::string name = settings->macroNameTemplate;
+                        name = str::replace(name, "%name%", pl->m_level->m_levelName);
+                        name = str::replace(name, "%id%", std::to_string(pl->m_level->m_levelID.value()));
+                        name = str::replace(name, "%creator%", pl->m_level->m_creatorName);
+                        name = str::replace(name, "%rand%", std::to_string(randomNumber));
+                        rs.m_replayName = name;
+                    }
+                }
+
                 tabby::fraction(2.0, [&]() {
                     if (tabby::button("Load").pressed) {
                         auto path = rs.getCurrentPath();
@@ -748,7 +997,8 @@ void UIManager::draw() {
                 if (tabby::radio(bot->m_mode, Bot::Mode::Recording,
                                  "Record##Mode")
                         .changed) {
-                    // prune all inputs after current frame if in a level
+                    keybindRightClick("bot.mode");
+                    
                     if (PlayLayer::get()) {
                         if (rs.getInputIndex() < rs.m_actionAtom.length()) {
                             rs.createBackup();
@@ -760,6 +1010,8 @@ void UIManager::draw() {
 
                 tabby::spacer(16.0);
                 tabby::radio(bot->m_mode, Bot::Mode::Playing, "Play##Mode");
+                keybindRightClick("bot.mode.play");
+                keybindRightClick("updater.frame_advance"); 
 
                 tabby::divider();
 
@@ -768,17 +1020,6 @@ void UIManager::draw() {
                                 "{:g}")
                         .changed) {
                     Bot::get()->updater().m_tps->notifyChange();
-                }
-
-                auto pl = PlayLayer::get();
-                if (pl && bot->isRecording() &&
-                    m_state.m_showExperimentalFeatures) {
-                    if (tabby::button("Add TPS Change").pressed) {
-                        (void)bot->replaySystem().m_actionAtom.addAction(
-                            bot->updater().getFrame() - 1,
-                            bot->updater().getTps());
-                        bot->updater().estimatedStepCount = 0;
-                    }
                 }
 
                 if (tabby::drag("Speed",
@@ -793,20 +1034,11 @@ void UIManager::draw() {
 
                 tabby::checkbox("Frame Advance",
                                 Bot::get()->updater().m_paused->inner());
-
-                // tabby::overlay([]() {
-                //     tabby::checkbox("Frame Advance",
-                //                     Bot::get()->updater().m_paused->inner());
-                // }, [this, popupShaderFn]() {
-                //     tabby::text("keybinds for frame advance");
-                //
-                //     tabby::dropdown("hi", m_state.m_lockDeltaState,
-                //     m_state.m_lockDeltaState.selectedIndex, popupShaderFn,
-                //     false);
-                // }, popupShaderFn);
+                keybindRightClick("updater.frame_advance");
 
                 tabby::checkbox("Intentional Death",
                                 Bot::get()->updater().m_canDie->inner());
+                keybindRightClick("updater.intentional_death");
 
                 tabby::checkbox(
                     "Frame Extrapolation",
@@ -869,9 +1101,21 @@ void UIManager::draw() {
                 tabby::text("Hitboxes", m_medium);
                 tabby::checkbox("Toggle##Hitboxes",
                                 Bot::get()->hitboxes().m_enabled->inner());
+                keybindRightClick("hitboxes.enabled");
 
                 tabby::checkbox("Show Trail##Hitboxes",
                                 Bot::get()->hitboxes().m_trailEnabled->inner());
+                keybindRightClick("hitboxes.trail_enabled");
+
+                if (Bot::get()->hitboxes().m_trailEnabled->inner()) {
+                    tabby::drag("Trail Length##Hitboxes",
+                                SLSettings::get()->hitboxes.trailMaxLength,
+                                50, 4000, 1.0f, "{:d}");
+
+                    tabby::drag("Trail Quality##Hitboxes",
+                                SLSettings::get()->hitboxes.trailRebuildInterval,
+                                1, 10, 1.0f, "Rebuild every {:d} steps");
+                }
 
                 tabby::drag("Width##Hitboxes",
                             Bot::get()->hitboxes().m_width->inner(), 0.0, 1.0,
@@ -915,6 +1159,7 @@ void UIManager::draw() {
                         .pressed) {
                     Bot::get()->updater().m_layoutMode->notifyChange();
                 }
+                keybindRightClick("updater.layout_mode");
 
                 tabby::checkbox("Use Regular Background##LayoutMode",
                                 Bot::get()->updater().m_useRegularBg->inner());
@@ -933,9 +1178,10 @@ void UIManager::draw() {
 
                 tabby::text("Noclip", m_medium);
 
-                // god i hate working on this. Rust release me
                 tabby::checkbox("Enabled##Noclip",
                                 Bot::get()->updater().m_noclip->inner());
+                keybindRightClick("updater.noclip");
+                keybindRightClick("updater.noclip");
 
                 tabby::dropdown("Player##Noclip", m_state.m_noclipState,
                                 *reinterpret_cast<int*>(
@@ -949,12 +1195,22 @@ void UIManager::draw() {
                 tabby::checkbox(
                     "Enabled##Trajectory",
                     Bot::get()->trajectory().m_state.m_enabled->inner());
+                keybindRightClick("trajectory.enabled");
+                keybindRightClick("trajectory.enabled");
                 tabby::drag("Width##Trajectory",
                             Bot::get()->trajectory().m_state.m_width->inner(),
                             0.0, 1.0, 0.01f, "{:.2f}");
                 tabby::drag("Length##Trajectory",
                             Bot::get()->trajectory().m_state.m_length->inner(),
                             0.0, 5.0, 0.01f, "{:.2f}s");
+
+                {
+                    auto& maxSteps = SLSettings::get()->trajectory.maxSteps;
+                    tabby::drag("Max Steps##Trajectory", maxSteps,
+                                0, 100000, 1.0f,
+                                maxSteps == 0 ? "Unlimited" : "{:d} steps");
+                    if (maxSteps < 0) maxSteps = 0;
+                }
 
                 tabby::dropdown(
                     "Trajectory##Selector", m_state.m_trajectoryState,
@@ -1009,9 +1265,6 @@ void UIManager::draw() {
                     },
                     16.0);
 
-                // tabby::checkbox("Run Full Updates",
-                // Bot::get()->updater().m_fullGamePrediction->inner());
-
                 tabby::divider();
 
                 tabby::text("Autoclicker", m_medium);
@@ -1046,6 +1299,8 @@ void UIManager::draw() {
 
                 tabby::checkbox("No Mirror Portals",
                                 Bot::get()->updater().m_noMirror->inner());
+                keybindRightClick("updater.no_mirror");
+                keybindRightClick("updater.no_mirror");
             });
 
             tabby::tab(m_state.m_currentTab, UIState::UITab::Prediction, [&]() {
@@ -1057,12 +1312,12 @@ void UIManager::draw() {
 
                 tabby::checkbox("Prevent Death",
                                 Bot::get()->updater().m_preventDeath->inner());
+                keybindRightClick("updater.prevent_death");
+                keybindRightClick("updater.prevent_death");
                 tabby::checkbox(
                     "Use Trajectory##PD",
                     Bot::get()->updater().m_fullGamePrediction->inner());
-                // tabby::checkbox("Auto Flip On Death",
-                // Bot::get()->updater().m_autoFlipOnDeath->inner());
-
+                
                 tabby::divider();
 
                 tabby::text("Simulation", m_medium);
@@ -1076,28 +1331,6 @@ void UIManager::draw() {
                     Bot::get()->updater().m_acceptablePrediction->inner(), 0.0f,
                     1.0f, 0.01f, "{:.2f}");
 
-                // tabby::divider();
-
-                // tabby::text("Pathfinder", m_medium);
-
-                // auto& pf = Bot::get()->pathfinder();
-
-                // if (pf.isRunning()) {
-                //     if (tabby::button("Stop##Pathfinder").pressed) {
-                //         pf.stop();
-                //     }
-
-                //     tabby::checkbox("Preview##Pathfinder",
-                //     pf.m_renderPreview);
-
-                //     auto pl = PlayLayer::get();
-                //     tabby::text(fmt::format("Progress: {} (Attempt {})",
-                //     Bot::get()->updater().getFrame(), pl->m_attempts));
-                // } else {
-                //     if (tabby::button("Start##Pathfinder").pressed) {
-                //         pf.start();
-                //     }
-                // }
             });
 
             tabby::tab(m_state.m_currentTab, UIState::UITab::Edit, [&]() {
@@ -1330,6 +1563,9 @@ void UIManager::draw() {
                 auto ar = AudioRecorder::get();
                 tabby::checkbox("Audio Preview", ar->m_audioPreview->inner());
 
+                tabby::checkbox("Show Labels While Recording",
+                                SLSettings::get()->renderLabelsWhileRecording);
+
                 tabby::divider();
 
                 tabby::text("Presets", m_medium);
@@ -1408,45 +1644,6 @@ void UIManager::draw() {
                 tabby::input_text("FFmpeg Args", "-preset slow ...",
                                   renderer->m_settings.m_renderArgs);
             });
-
-            // tabby::tab(m_state.m_currentTab, UIState::UITab::Scripts, [&]() {
-            //     tabby::text("Scripts", m_bold);
-
-            //     tabby::divider(false);
-
-            //     tabby::text("Script Manager", m_medium);
-
-            //     tabby::input_text_autocomplete(
-            //         "Script Name", "Script", m_state.m_scriptName,
-            //         m_state.m_scriptAutocomplete, [&]() {
-            //             renderBlurBg(12.0f, 1.5f,
-            //             m_state.m_useShader->inner(),
-            //                          m_state.m_opacity->inner());
-            //         });
-
-            //     if (tabby::button("Load").pressed) {
-            //         auto path = Mod::get()->getPersistentDir() / "scripts" /
-            //                     (m_state.m_scriptName + ".lua");
-            //         if (std::filesystem::exists(path)) {
-            //             Bot::get()->scripts().loadScript(path);
-            //         } else {
-            //             geode::log::error("Script file does not exist: {}",
-            //                               path.string());
-            //         }
-            //     }
-
-            //     tabby::divider();
-
-            //     auto& scripts = Bot::get()->scripts();
-            //     for (int i = 0; i < scripts.m_scripts.size(); i++) {
-            //         auto& script = scripts.m_scripts[i];
-            //         tabby::text(script.m_name);
-            //         tabby::checkbox("Enabled##Script" + std::to_string(i),
-            //                         script.m_enabled);
-
-            //         tabby::divider();
-            //     }
-            // });
 
             tabby::tab(m_state.m_currentTab, UIState::UITab::Settings, [&]() {
                 tabby::text("Settings", m_bold);
@@ -1540,6 +1737,19 @@ void UIManager::draw() {
 
                 tabby::divider();
 
+                tabby::text("Macro Name", m_medium);
+
+                tabby::checkbox("Auto Macro Name",
+                                SLSettings::get()->autoMacroName);
+
+                if (SLSettings::get()->autoMacroName) {
+                    tabby::input_text(
+                        "Macro Name Template", "Template (e.g. %name%_%rand%)",
+                        SLSettings::get()->macroNameTemplate);
+                }
+
+                tabby::divider();
+
                 tabby::text("Labels", m_medium);
 
                 tabby::checkbox("Display Labels",
@@ -1555,6 +1765,9 @@ void UIManager::draw() {
                                   ->labels()
                                   .m_labels[m_state.m_labelState.selectedIndex]
                                   .m_config;
+
+                m_state.m_labelFontsState.selectedIndex =
+                    (label.m_font == Label::LabelFont::BigFont) ? 0 : 1;
 
                 if (tabby::checkbox("Enabled##Label", label.m_enabled)
                         .pressed) {
@@ -1574,13 +1787,17 @@ void UIManager::draw() {
                 }
 
                 if (tabby::dropdown("Font##Label", m_state.m_labelFontsState,
-                                    *reinterpret_cast<int*>(&label.m_font),
+                                    m_state.m_labelFontsState.selectedIndex,
                                     [&]() {
                                         renderBlurBg(
                                             12.0f, 1.5f,
                                             m_state.m_useShader->inner());
                                     })
                         .changed) {
+                    int idx = m_state.m_labelFontsState.selectedIndex;
+                    label.m_font = (idx == 0)
+                        ? Label::LabelFont::BigFont
+                        : Label::LabelFont::ChatFont;
                     bot->labels().m_requiresRefresh = true;
                 }
 
@@ -1656,7 +1873,6 @@ void UIManager::draw() {
             });
         });
 
-        // window border
         ImGui::GetWindowDrawList()->AddRect(
             ImGui::GetWindowPos(),
             ImGui::GetWindowPos() + ImGui::GetWindowSize(),
@@ -1665,7 +1881,7 @@ void UIManager::draw() {
             ImDrawFlags_RoundCornersAll,
             2.5 * tabby::TabbyGlobalCfg::get().uiScale);
 
-        tabby::off_the_screen();  // incredible solution
+        tabby::off_the_screen();  
         tabby::text(
             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
             "!@#$"
@@ -1691,6 +1907,8 @@ void UIManager::draw() {
             "\uf01f",
             m_medium);
     });
+
+    drawKeybindContextMenu();
 
 #ifdef SILICATE_PROTECT
     VMProtectEnd();

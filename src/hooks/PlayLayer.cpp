@@ -9,6 +9,9 @@
 #include "label/label.hpp"
 #include "render/renderer.hpp"
 #include "replay/system.hpp"
+#include "settings/settings.hpp"
+#include "Geode/utils/random.hpp"
+#include "Geode/utils/string.hpp"
 #include "trajectory/trajectory.hpp"
 #include "ui/manager.hpp"
 #include "util/midhook.hpp"
@@ -68,25 +71,21 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
             return;
         }
 
-        // Backwards step
         if (pf.m_loadCheckpoint) {
             pf.restorePreviousFrame(
                 [this](auto* cp) { this->PlayLayer::loadFromCheckpoint(cp); });
 
-            // Restored - shouldn't be dead anymore
             pf.m_hasDiedNormally = false;
 
             return;
         }
 
-        // For some reason m_savedCheckpoints is 0, just fallback to the game
         if (pf.m_savedCheckpoints.size() == 0) {
             PlayLayer::loadFromCheckpoint(obj);
 
             return;
         }
 
-        // Platformer checkpoints are stored in a separate stack
         if (pf.m_shouldLoadPlatformer) {
             PlayLayer::loadFromCheckpoint(
                 pf.m_platformerCheckpoints.back().first);
@@ -95,7 +94,6 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
         }
 
         auto checkpoint = pf.m_savedCheckpoints.back();
-        // Don't keep stale backsteps
         pf.clearStoredFrames();
         PlayLayer::loadFromCheckpoint(checkpoint.m_checkpoint);
 
@@ -103,11 +101,6 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
     }
 
     void delayedResetLevel() {
-        // delayedResetLevel is only called when respawning from
-        // an actual death, and not a restart or full restart
-        //
-        // therefore it's a safe way to determine if we want a Death or Restart
-        // input after this resetLevel
 
         auto bot = Bot::get();
         if (bot->updater().m_canDie->inner()) {
@@ -118,7 +111,7 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
     }
 
     void fakeFullReset() {
-        // Naive decompilation without removing checkpoints etc
+        // naive decompilation without removing checkpoints etc
         auto winSize = CCDirector::sharedDirector()->getWinSize();
         this->m_gameState.m_totalTime = 0.0;
         this->m_gameState.m_unkDouble3 = 0.0;
@@ -185,7 +178,6 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
         auto& pf = bot->practiceFix();
 
         if (this->isResetIntentional()) {
-            // And then the next attempt starts from this frame + 1
             bot->updater().m_frameOnLastAttempt = deathFrame + 1;
 
             if (!pf.m_platformerCheckpoints.empty()) {
@@ -384,37 +376,26 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
 
             return PlayLayer::resetLevel();
         }
-
-        // Practice music sync should always be on
+		
         m_practiceMusicSync = true;
 
         bot->updater().m_tpsOverflow = 0.0;
         bot->updater().m_respawnTimer = 2;
 
-        // Increment the frame, because update that'll increment the frame
-        // won't be called this death frame and we want to make it distinct
-        // from the frame just before
         bot->updater().incrementFrame();
 
-        // That distinct frame
         uint64_t deathFrame = bot->updater().getFrame();
 
-        // Sanity check, should probably be already expected
         this->checkIfResetWasExpected(deathFrame);
 
-        // This is basically a signal that'll determine whether to clean the
-        // checkpoint array up again
         bool hasAddedCheckpoint = this->handleResetWithCheckpoints(deathFrame);
 
         // bot->replaySystem().m_forceNextInput = true;
         // this->processQueuedButtons();
         // bot->replaySystem().m_forceNextInput = false;
 
-        // m_frameOnLastAttempt was updated, we may reset the frame now to the
-        // first frame for this given attempt (will be 0 for non-ID)
         bot->updater().resetFrame();
 
-        // Clear hitbox trail (maybe prune it up until this frame later?)
         bot->hitboxes().clearTrail();
 
         this->updateRandomSeedOnReset();
@@ -425,43 +406,36 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
 
         PlayLayer::resetLevel();
 
-        // Cleanup any checkpoints added to the array (should be just one!)
         if (hasAddedCheckpoint) {
             Bot::get()->practiceFix().m_shouldLoadPlatformer = false;
             this->m_checkpointArray->removeLastObject();
 
-            // Mitigates the ghost frame
             bot->updater().m_onlyRefresh = true;
             this->m_extraDelta = 0.0f;
             CCScheduler::get()->update(0.0f);
 
-            // Re-update labels after reset
-            bool disableLabels = Renderer::get()->isRecording();
+            bool disableLabels = Renderer::get()->isRecording() &&
+                                 !SLSettings::get()->renderLabelsWhileRecording;
             bot->labels().update(disableLabels);
             bot->updater().m_onlyRefresh = false;
         }
 
-        // Reset internal bot systems
         bot->replaySystem().onReset(bot->updater().getFrame());
         bot->autoclicker().reset();
 
-        // And re-update trajectory
         bot->trajectory().update(this);
 
         this->restoreHoldOnReset(deathFrame);
         this->addDeathInput(deathFrame);
 
-        // Don't re-process inputs if the player has intentionally died
         if (!bot->updater().m_canDie->inner()) {
             bot->replaySystem().m_flipProcessingInputs = true;
             this->processQueuedButtons(0.0, true);
             bot->replaySystem().m_flipProcessingInputs = false;
         }
 
-        // And then just restore ID state for subsequent deaths
         this->intentionalResetDone();
 
-        // Respawned fully
         bot->practiceFix().m_hasDiedNormally = false;
         bot->practiceFix().m_isBackstep = false;
 
@@ -483,19 +457,15 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
 
         auto bot = Bot::get();
 
-        // Deallocate trajectory and hitbox nodes
-        // before the PlayLayer gets destroyed
+        // deallocate trajectory and hitbox nodes before the PlayLayer gets destroyed
         bot->trajectory().uninit();
         bot->hitboxes().destroy();
 
         PlayLayer::onQuit();
 
-        // This will free all checkpoint objects, so we just have to clear the
-        // vector
         bot->practiceFix().clearStoredFrames();
         bot->practiceFix().removeAll();
 
-        // Reset the input index to 0
         bot->replaySystem().onExit();
     }
 
@@ -510,7 +480,6 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
 
         auto checkpoint = Bot::get()->practiceFix().m_savedCheckpoints.back();
 
-        // Remove the physical checkpoint object
         auto obj = checkpoint.m_checkpoint->m_physicalCheckpointObject;
         this->removeObjectFromSection(obj);
 
@@ -529,15 +498,12 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
     }
 
     void removeAllCheckpoints() {
-        // Let the game handle it
         if (!Bot::get()->isEnabled()) {
             return PlayLayer::removeAllCheckpoints();
         }
 
-        // Don't remove all checkpoints if this is a "fake" full reset
         if (Bot::get()->updater().m_fullReset) return;
 
-        // Otherwise, just call removeCheckpoint for every checkpoint
         while (!Bot::get()->practiceFix().m_savedCheckpoints.empty()) {
             removeCheckpoint(false);
         }
@@ -554,8 +520,7 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
             bot->trajectory().uninit();
         }
         bot->practiceFix().clearPlatformer(
-            false);  // only time when we know for a fact platformer checkpoints
-                     // are not loaded
+            false);
 
         auto renderer = Renderer::get();
         if (renderer->m_shouldStart) {
@@ -575,6 +540,18 @@ struct SLPlayLayer : Modify<SLPlayLayer, PlayLayer> {
         bot->updater().m_frameOnLastAttempt = 0;
         bot->updater().m_lastTfp = 0.0f;
         bot->labels().m_requiresRefresh = true;
+
+        // setting replay name from level name
+        if (SLSettings::get()->autoMacroName && bot->isRecording()) {
+            namespace str = geode::utils::string;
+            int randomNumber = geode::utils::random::generate(0, 999'999'999);
+            std::string name = SLSettings::get()->macroNameTemplate;
+            name = str::replace(name, "%name%", level->m_levelName);
+            name = str::replace(name, "%id%", std::to_string(level->m_levelID.value()));
+            name = str::replace(name, "%creator%", level->m_creatorName);
+            name = str::replace(name, "%rand%", std::to_string(randomNumber));
+            bot->replaySystem().m_replayName = name;
+        }
 
         return true;
     }

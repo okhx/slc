@@ -93,6 +93,7 @@ class Trajectory {
         float cameraZoom = 0.0f;
         float width = 0.0f;
         float length = 0.0f;
+        int maxSteps = 0;
         uint32_t boolPack = 0;
         size_t categoriesHash = 0;
 

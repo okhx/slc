@@ -31,8 +31,9 @@ class SLBindingManager {
 
     SLBindingManager() = default;
 
-    bool m_needsNewKey = false;
-    cocos2d::enumKeyCodes m_newKey;
+    bool m_needsNewKey  = false;
+    bool m_keyReceived  = false;
+    cocos2d::enumKeyCodes m_newKey = cocos2d::enumKeyCodes::KEY_None;
 
     bool m_hasRead = false;
 
@@ -133,16 +134,78 @@ class SLBindingManager {
         }
     }
 
-    void wantNewKey() { m_needsNewKey = true; }
+    void wantNewKey() {
+        m_needsNewKey = true;
+        m_keyReceived = false;
+        m_newKey = cocos2d::enumKeyCodes::KEY_None;
+    }
 
-    void setNewKey(cocos2d::enumKeyCodes key) { m_newKey = key; }
+    void setNewKey(cocos2d::enumKeyCodes key) {
+        m_newKey      = key;
+        m_keyReceived = true;
+        m_needsNewKey = false;
+    }
+
     cocos2d::enumKeyCodes getNewKey() {
-        if (m_needsNewKey) {
-            m_needsNewKey = false;
+        if (m_keyReceived) {
+            m_keyReceived = false;
             return m_newKey;
-        } else {
-            return cocos2d::enumKeyCodes::KEY_None;
         }
+        return cocos2d::enumKeyCodes::KEY_None;
+    }
+
+    bool isWaitingForKey() const { return m_needsNewKey; }
+    bool hasNewKey()       const { return m_keyReceived;  }
+
+    std::vector<std::string> getValueTags() const {
+        std::vector<std::string> tags;
+        tags.reserve(m_values.size());
+        for (const auto& [tag, _] : m_values) tags.push_back(tag);
+        std::sort(tags.begin(), tags.end());
+        return tags;
+    }
+
+    std::vector<std::shared_ptr<KeybindControl>> getKeybindsForTag(
+            const std::string& tag) const {
+        std::vector<std::shared_ptr<KeybindControl>> result;
+        for (const auto& [hash, vec] : m_keybinds) {
+            for (const auto& kb : vec) {
+                if (kb->getTag() == tag) result.push_back(kb);
+            }
+        }
+        return result;
+    }
+
+    void removeKeybind(const std::shared_ptr<KeybindControl>& kb) {
+        auto hash = kb->getHash();
+        if (!m_keybinds.contains(hash)) return;
+        auto& vec = m_keybinds[hash];
+        vec.erase(std::remove(vec.begin(), vec.end(), kb), vec.end());
+        if (vec.empty()) m_keybinds.erase(hash);
+    }
+
+    void removeAllKeybindsForTag(const std::string& tag) {
+        for (auto& [hash, vec] : m_keybinds) {
+            vec.erase(std::remove_if(vec.begin(), vec.end(),
+                [&](const auto& kb) { return kb->getTag() == tag; }),
+                vec.end());
+        }
+        
+        for (auto it = m_keybinds.begin(); it != m_keybinds.end(); ) {
+            if (it->second.empty()) it = m_keybinds.erase(it);
+            else ++it;
+        }
+    }
+
+    bool hasValue(const std::string& tag) const {
+        return m_values.contains(tag);
+    }
+
+    bool addKeybindForTag(const std::string& tag, RawKeybind& raw) {
+        if (!m_values.contains(tag)) return false;
+        auto kb = m_values[tag]->createKeybind(raw);
+        registerKeybind(kb);
+        return true;
     }
 
     SLBindingManager(SLBindingManager const&) = delete;

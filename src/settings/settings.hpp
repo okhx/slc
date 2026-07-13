@@ -8,7 +8,6 @@
 
 #include "../shared/value/value.hpp"
 
-// Global settings class for Silicate.
 class SLSettings {
    public:
     bool botEnabled = true;
@@ -49,6 +48,11 @@ class SLSettings {
     bool automaticVideoName = true;
     bool previewAudio = true;
     std::string videoNameTemplate = "%name%_%rand%";
+
+    bool autoMacroName = false;
+    std::string macroNameTemplate = "%name%_%rand%";
+
+    bool renderLabelsWhileRecording = false;
     std::string lastLoadedPreset = "";
     bool scrollSpeedBugFix = false;
 
@@ -88,6 +92,7 @@ class SLSettings {
         bool enabled = false;
         double width = 0.5;
         double length = 1.0;
+        int maxSteps = 0;
 
         std::unordered_map<int, State> categories = {
             {Mode::Hold, {true}},
@@ -119,6 +124,9 @@ class SLSettings {
     struct HitboxSettings {
         double width = 0.5;
         bool trailEnabled = false;
+
+        int trailMaxLength = 1000;
+        int trailRebuildInterval = 3;
 
         enum Type {
             Player,
@@ -159,7 +167,6 @@ class SLSettings {
     }
 };
 
-// clang-format off
 template <>
 struct glz::meta<SLSettings> {
     using T = SLSettings;
@@ -206,10 +213,13 @@ struct glz::meta<SLSettings> {
         "layout_ground", &T::layoutGroundColor,
         "layout_use_bg", &T::useRegularBg,
 
-        "alternate_hook", &T::useAlternateHook
+        "alternate_hook", &T::useAlternateHook,
+
+        "auto_macro_name", &T::autoMacroName,
+        "macro_name_template", &T::macroNameTemplate,
+        "render_labels_while_recording", &T::renderLabelsWhileRecording
     );
 };
-// clang-format on
 
 $on_mod(DataSaved) {
     std::filesystem::path settingsPath =

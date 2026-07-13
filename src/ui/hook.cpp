@@ -22,7 +22,6 @@ LRESULT CALLBACK h_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     bool ctrlHeld = GetKeyState(VK_CONTROL) & 0x8000;
     bool altHeld = GetKeyState(VK_MENU) & 0x8000;
 
-    // on resize window
     if (uMsg == WM_SIZE) {
         ImGuiHookCtx::get().handleResize(LOWORD(lParam), HIWORD(lParam));
     }
@@ -60,6 +59,12 @@ LRESULT CALLBACK h_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 }
             }
 
+            if (SLBindingManager::get()->isWaitingForKey()) {
+                SLBindingManager::get()->setNewKey(
+                    static_cast<cocos2d::enumKeyCodes>(key));
+                return true;
+            }
+
             SLBindingManager::get()->processKeyEvent(key, true, ctrlHeld,
                                                      shiftHeld, altHeld);
         } else if (uMsg == WM_KEYUP || uMsg == WM_SYSKEYUP ||
@@ -68,8 +73,6 @@ LRESULT CALLBACK h_WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
             SLBindingManager::get()->processKeyEvent(key, false, ctrlHeld,
                                                      shiftHeld, altHeld);
         }
-
-        // return true;
 
         if (ImGui::GetIO().WantCaptureMouse) {
             if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow)) {
@@ -280,19 +283,11 @@ void ImGuiHookCtx::init(cocos2d::CCEGLView* view) {
                             .m_fragmentShader = BLUR_FRAG,
                             .m_readPixels = [](float, float) {}};
 
-    // m_postprocessPass = RenderPass{
-    //     .m_width = (unsigned int)width,
-    //     .m_height = (unsigned int)height,
-    //     .m_vertexShader = BLUR_VERT,
-    //     .m_fragmentShader = POSTPROCESS_FRAG,
-    //     .m_readPixels = []() {}};
-
     GLint oldFbo;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFbo);
 
     m_blurPass.initialize();
-    // Bot::get()->ui().m_theme->initialize();
-
+    
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenTextures(1, &m_inputTex);
@@ -356,7 +351,7 @@ void ImGuiHookCtx::preSampleBlur(ImVec4 window) {
 
     if (auto renderer = Renderer::get(); renderer->isRecording()) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER,
-                          renderer->m_texture.m_old_fbo);  // kind and jorkful
+                          renderer->m_texture.m_old_fbo);  
     } else {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
     }
@@ -451,6 +446,5 @@ struct SLEGLView : Modify<SLEGLView, CCEGLView> {
 
         CCEGLView::swapBuffers();
 
-        // glClearColor(1.0, 1.0, 1.0, 1.0);
     }
 };

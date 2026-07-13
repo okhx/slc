@@ -8,6 +8,7 @@
 
 #include "../settings/settings.hpp"
 #include "../shared/value/value.hpp"
+#include <imgui.h>
 
 struct UIState {
     enum class UITab {
@@ -26,8 +27,8 @@ struct UIState {
         SLValue<bool>::create("ui.glass_ui", &SLSettings::get()->glassUi);
     SLValuePtr<float> m_uiScale = SLValue<float>::create(
         "ui._______ui_scale",
-        &SLSettings::get()->uiScale);  // 7 underscores because SHOULDN'T HAVE
-                                       // KEYBINDS BOUND TO THIS
+        &SLSettings::get()->uiScale);  
+                                       
     SLValuePtr<bool> m_rainbow =
         SLValue<bool>::create("ui.rainbow", &SLSettings::get()->rainbowMode);
     SLValuePtr<bool> m_playAnimations = SLValue<bool>::create(
@@ -57,7 +58,6 @@ struct UIState {
     std::string m_replayName = "";
     std::string m_lastReplayName = "";
 
-    // macro merge
     std::string m_mergeReplayName = "";
     tabby::AutocompleteState m_mergeAutocomplete;
     tabby::DropdownState m_mergeModeState = {
@@ -198,7 +198,26 @@ struct UIState {
     tabby::ColorState m_groundColorState;
     tabby::ColorState m_bgColorState;
 
+    std::vector<std::string> m_customFontNames;
+    std::vector<ImFont*>     m_customFonts;
+
+    struct KeybindContextState {
+        bool  open        = false;
+        std::string tag;          
+
+        bool  capturing   = false;
+        int   capturedKey = 0;
+        int   capturedMod = 0;
+
+        KeybindType pendingType = KeybindType::Toggle;
+        std::string pendingValue = "1";
+
+        tabby::DropdownState typeState = {
+            .options = {"Toggle", "Hold", "Override"},
+        };
+    } m_keybindCtx;
+
     void toggle() { m_visible->inner() = !m_visible->inner(); }
 };
 
-#endif  // UI_STATE_HPP
+#endif  

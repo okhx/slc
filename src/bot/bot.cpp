@@ -81,8 +81,8 @@ void Bot::initialize() {
     fs::create_directories(dir / "scripts");
     fs::create_directories(dir / "backups");
     fs::create_directories(dir / "libraries");
+    fs::create_directories(dir / "fonts");
 
-    // CBF fix
     geode::Mod* cbf =
         Loader::get()->getInstalledMod("syzzi.click_between_frames");
     if (cbf) {

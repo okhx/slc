@@ -8,6 +8,14 @@
 
 using namespace geode::prelude;
 
+static std::string resolveFontFile(const Label::LabelConfig& cfg) {
+    switch (cfg.m_font) {
+        case Label::LabelFont::BigFont:  return "bigFont.fnt";
+        case Label::LabelFont::ChatFont: return "chatFont.fnt";
+    }
+    return "chatFont.fnt";
+}
+
 #define GET_PLAYER_VAR(display, var, precision)                             \
     {                                                                       \
         auto pl = PlayLayer::get();                                         \
@@ -180,7 +188,6 @@ void LabelManager::update(bool forceDisable) {
     m_requiresRefresh = false;
 }
 
-// clang-format off
 template <>
 struct glz::meta<Label::LabelConfig> {
     using T = Label::LabelConfig;
@@ -192,7 +199,6 @@ struct glz::meta<Label::LabelConfig> {
         "scale", &T::m_scale
     );
 };
-// clang-format on
 
 void LabelManager::readFromConfig() {
     std::unordered_map<std::string, Label::LabelConfig> labels;
@@ -242,21 +248,13 @@ CCLabelBMFont* Label::get() {
             return dynamic_cast<CCLabelBMFont*>(l);
         }
 
-        switch (m_config.m_font) {
-            case LabelFont::BigFont:
-                m_font = "bigFont.fnt";
-                break;
-            case LabelFont::ChatFont:
-                m_font = "chatFont.fnt";
-                break;
-        }
+        m_font = resolveFontFile(m_config);
 
         label = CCLabelBMFont::create(m_display().c_str(), m_font.c_str());
 
         label->setID(cocosLabelID);
         label->setScale(m_config.m_scale);
-        // this->calculatePosition(0, label);
-
+        
         PlayLayer::get()->addChild(label, 1000);
     }
 
@@ -307,18 +305,11 @@ void Label::update(bool forceDisable, bool refresh, float& currentHeight) {
 
         if (!m_config.m_enabled) {
             refresh = false;
-            // don't tick the label if it's not enabled
+            
         }
 
         if (refresh) {
-            switch (m_config.m_font) {
-                case LabelFont::BigFont:
-                    m_font = "bigFont.fnt";
-                    break;
-                case LabelFont::ChatFont:
-                    m_font = "chatFont.fnt";
-                    break;
-            }
+            m_font = resolveFontFile(m_config);
 
             label->setFntFile(m_font.c_str());
             label->setOpacity(
