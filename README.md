@@ -1,6 +1,6 @@
 # Silicate
 
-This is the main repository for the Silicate bot. 
+This is `unofficial` repository for the Silicate bot. It's a modified version with new included features.
 
 ## Versioning
 
@@ -32,10 +32,18 @@ lib/
 
 ## Compiling
 
-1. Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
-2. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
+1. **[ALREADY CONTAINS]** Clone [`tabby`](https://github.com/silicate-bot/tabby) into lib/tabby. Make sure you're on the `legacy-v1` branch (until we migrate lol).
+2. You need `ninja`, `ninja-build`, `GeodeSDK` and `cmake` libraries for compiling.
+3. Run `build.bat` or `build-rel.bat` if you're compiling for public use. (Use `build.sh` if you're on Linux!)
 
 ## Contributing
 
 Please use feature branches. Use clang-format for formatting your code (unless it makes it horribly unreadable).
 Currently we do not have automated testing. Please test the features you're implementing/changing and related components before releasing builds.
+
+## Features
+
+- [x] Clean Code
+- [x] Necessary Functions
+- [x] Optimization
+- [x] Easy Bindings
