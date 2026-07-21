@@ -47,3 +47,7 @@ Currently we do not have automated testing. Please test the features you're impl
 - [x] Necessary Functions
 - [x] Optimization
 - [x] Easy Bindings
+
+TODO:
+- [ ] Hex Colors
+- [ ] New Macro Editor
